@@ -1,0 +1,5 @@
+.vs/
+out/
+CMakeUserPresets.json
+VulkanGE/x64/
+*.user

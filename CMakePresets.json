@@ -1,0 +1,55 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "architecture": { "value": "x64", "strategy": "external" },
+      "toolset": { "value": "host=x64", "strategy": "external" },
+      "cacheVariables": { "CMAKE_EXPORT_COMPILE_COMMANDS": "ON" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "x64-Debug",
+      "displayName": "x64 Debug (Ninja)",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "x64-Release",
+      "displayName": "x64 Release (Ninja)",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+    },
+    {
+      "name": "windows-vs2022",
+      "displayName": "Visual Studio 2022 x64 (generates .sln/.vcxproj)",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/out/build/${presetName}"
+    }
+  ],
+  "buildPresets": [
+    { "name": "x64-Debug", "configurePreset": "x64-Debug" },
+    { "name": "x64-Release", "configurePreset": "x64-Release" },
+    {
+      "name": "windows-vs2022-debug",
+      "displayName": "Debug",
+      "configurePreset": "windows-vs2022",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-vs2022-release",
+      "displayName": "Release",
+      "configurePreset": "windows-vs2022",
+      "configuration": "Release"
+    }
+  ]
+}
