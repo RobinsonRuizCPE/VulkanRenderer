@@ -13,6 +13,17 @@ namespace VulkanRender {
 
     VulkanRenderSwapChain::VulkanRenderSwapChain(VulkanRenderDevice& deviceRef, VkExtent2D extent)
         : device{ deviceRef }, windowExtent{ extent } {
+        Init();
+    }
+
+    VulkanRenderSwapChain::VulkanRenderSwapChain(VulkanRenderDevice& deviceRef, VkExtent2D extent, std::shared_ptr< VulkanRenderSwapChain> previous)
+        : device{ deviceRef }, windowExtent{ extent }, old_swap_chain{ previous } {
+        Init();
+
+        old_swap_chain = nullptr;
+    }
+
+    void VulkanRenderSwapChain::Init() {
         createSwapChain();
         createImageViews();
         createRenderPass();
@@ -163,7 +174,7 @@ namespace VulkanRender {
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
 
-        createInfo.oldSwapchain = VK_NULL_HANDLE;
+        createInfo.oldSwapchain = old_swap_chain == nullptr ? VK_NULL_HANDLE : old_swap_chain->swapChain ;
 
         if (vkCreateSwapchainKHR(device.device(), &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
@@ -290,6 +301,7 @@ namespace VulkanRender {
 
     void VulkanRenderSwapChain::createDepthResources() {
         VkFormat depthFormat = findDepthFormat();
+        swapChainDepthFormat = depthFormat;
         VkExtent2D swapChainExtent = getSwapChainExtent();
 
         depthImages.resize(imageCount());
@@ -363,7 +375,7 @@ namespace VulkanRender {
     VkSurfaceFormatKHR VulkanRenderSwapChain::chooseSwapSurfaceFormat(
         const std::vector<VkSurfaceFormatKHR>& availableFormats) {
         for (const auto& availableFormat : availableFormats) {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
                 availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return availableFormat;
             }

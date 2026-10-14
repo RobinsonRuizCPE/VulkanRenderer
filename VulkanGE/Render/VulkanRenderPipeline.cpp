@@ -1,5 +1,7 @@
 #include "VulkanRenderPipeline.hpp"
 
+#include "Model/Model.hpp"
+
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -68,12 +70,14 @@ namespace VulkanRender {
 		shader_stages[1].pNext = nullptr;
 		shader_stages[1].pSpecializationInfo = nullptr;
 
+		auto binding_descriptions = Model::Vertex::GetBindingDescriptions();
+		auto attribute_descriptions = Model::Vertex::GetAttributeDescriptions();
 		VkPipelineVertexInputStateCreateInfo vertex_input_info{};
 		vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertex_input_info.vertexAttributeDescriptionCount = 0;
-		vertex_input_info.vertexBindingDescriptionCount = 0;
-		vertex_input_info.pVertexAttributeDescriptions = nullptr;
-		vertex_input_info.pVertexBindingDescriptions = nullptr;
+		vertex_input_info.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute_descriptions.size());
+		vertex_input_info.vertexBindingDescriptionCount = static_cast<uint32_t>(binding_descriptions.size());
+		vertex_input_info.pVertexAttributeDescriptions = attribute_descriptions.data();
+		vertex_input_info.pVertexBindingDescriptions = binding_descriptions.data();
 
 		VkGraphicsPipelineCreateInfo pipeline_info{};
 		pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -82,19 +86,12 @@ namespace VulkanRender {
 		pipeline_info.pVertexInputState = &vertex_input_info;
 		pipeline_info.pInputAssemblyState = &config_info.input_assembly_info; 
 
-		VkPipelineViewportStateCreateInfo viewport_info{};
-		viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewport_info.viewportCount = 1;
-		viewport_info.pViewports = &config_info.viewport;
-		viewport_info.scissorCount = 1;
-		viewport_info.pScissors = &config_info.scissor;
-
-		pipeline_info.pViewportState = &viewport_info;
+		pipeline_info.pViewportState = &config_info.viewport_info;
 		pipeline_info.pRasterizationState = &config_info.rasterization_info;
 		pipeline_info.pMultisampleState = &config_info.multisample_info;
 
 		pipeline_info.pColorBlendState = &config_info.color_blend_info;
-		pipeline_info.pDynamicState = nullptr;
+		pipeline_info.pDynamicState = &config_info.dynamic_state_info;
 
 		pipeline_info.layout = config_info.pipeline_layout;
 		pipeline_info.renderPass = config_info.render_pass;
@@ -124,21 +121,16 @@ namespace VulkanRender {
 		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
 	}
 
-	PipelineConfigInfo VulkanRenderPipeline::DefaultPipelineConfigInfo(uint32_t width, uint32_t height) {
-		PipelineConfigInfo config_info{};
+	void VulkanRenderPipeline::DefaultPipelineConfigInfo(PipelineConfigInfo& config_info) {
 		config_info.input_assembly_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		config_info.input_assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		config_info.input_assembly_info.primitiveRestartEnable = VK_FALSE;
 
-		config_info.viewport.x = 0.0f;
-		config_info.viewport.y = 0.0f;
-		config_info.viewport.width = static_cast<float>(width);
-		config_info.viewport.height = static_cast<float>(height);
-		config_info.viewport.minDepth = 0.0f;
-		config_info.viewport.maxDepth = 1.0f;
-
-		config_info.scissor.offset = { 0, 0 };
-		config_info.scissor.extent = { width, height };
+		config_info.viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		config_info.viewport_info.viewportCount = 1;
+		config_info.viewport_info.pViewports = nullptr;
+		config_info.viewport_info.scissorCount = 1;
+		config_info.viewport_info.pScissors = nullptr;
 
 		config_info.rasterization_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		config_info.rasterization_info.depthClampEnable = VK_FALSE;
@@ -192,8 +184,12 @@ namespace VulkanRender {
 		config_info.depth_stencil_info.front = {};  // Optional
 		config_info.depth_stencil_info.back = {};   // Optional
 
-
-		return config_info;
+		config_info.dynamic_state_enables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		config_info.dynamic_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+		config_info.dynamic_state_info.pDynamicStates = config_info.dynamic_state_enables.data();
+		config_info.dynamic_state_info.dynamicStateCount =
+			static_cast<uint32_t>(config_info.dynamic_state_enables.size());
+		config_info.dynamic_state_info.flags = 0;
 	}
 
 
