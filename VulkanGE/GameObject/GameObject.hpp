@@ -3,21 +3,19 @@
 #include <Render/Model/Model.hpp>
 #include <glm/glm.hpp>
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <memory>
 
 namespace Object {
 
-	struct Transform2DComponent {
-		glm::vec2 translation{};
-		glm::vec2 scale{ 1.f,1.f };
-		float rotation;
-		glm::mat2 mat2() { 
-			const float s = glm::sin(rotation);
-			const float c = glm::cos(rotation);
-			glm::mat2 rot_mat = { {c,s},{-s,c} };
-			glm::mat2 scale_mat{ {scale.x, 0.f}, {0.f, scale.y} };
-			return rot_mat * scale_mat;
-		}
+	struct TransformComponent {
+		glm::vec3 translation{};
+		glm::vec3 scale{ 1.f,1.f,1.f };
+		glm::vec3 rotation{};
+
+		glm::mat4 mat4();
+		glm::mat3 NormalMatrix();
 	};
 
 	class GameObject {
@@ -40,7 +38,7 @@ namespace Object {
 
 		std::shared_ptr<VulkanRender::Model> model{};
 		glm::vec3 color{};
-		Transform2DComponent transform_2d{};
+		TransformComponent transform{};
 
 	private:
 		GameObject(id_t obj_id) : id{ obj_id } {}

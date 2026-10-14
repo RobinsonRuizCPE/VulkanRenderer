@@ -2,15 +2,16 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
+
 #include <stdexcept>
 #include <array>
 
 struct SimplePushConstantData {
-	glm::mat2 transform{ 1.f };
-	glm::vec2 offset;
-	alignas(16) glm::vec3 color;
+	glm::mat4 transform{ 1.f };
+	glm::mat4 normal_matrix{ 1.f };
 };
 
 namespace VulkanRender {
@@ -57,14 +58,15 @@ namespace VulkanRender {
 
 	}
 
-	void SimpleSystem::RenderGameObjects(VkCommandBuffer command_buffer, std::vector<Object::GameObject>& game_objects)
+	void SimpleSystem::RenderGameObjects(VkCommandBuffer command_buffer, std::vector<Object::GameObject>& game_objects, const Camera& camera)
 	{
+		auto projection_view = camera.GetProjection() * camera.GetView();
 		vulkan_render_pipeline->Bind(command_buffer);
 		for (auto& object : game_objects) {
 			SimplePushConstantData push{};
-			push.offset = object.transform_2d.translation;
-			push.color = object.color;
-			push.transform = object.transform_2d.mat2();
+			auto const model_matrix = object.transform.mat4();
+			push.normal_matrix = object.transform.NormalMatrix();
+			push.transform = projection_view * model_matrix;
 
 			vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SimplePushConstantData), &push);
 			object.model->Bind(command_buffer);
