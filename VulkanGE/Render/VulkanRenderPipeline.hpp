@@ -8,14 +8,19 @@
 namespace VulkanRender {
 
 	struct PipelineConfigInfo{
-		VkViewport viewport;
-		VkRect2D scissor;
+
+
+		VkPipelineViewportStateCreateInfo viewport_info;
 		VkPipelineInputAssemblyStateCreateInfo input_assembly_info;
 		VkPipelineRasterizationStateCreateInfo rasterization_info;
 		VkPipelineMultisampleStateCreateInfo multisample_info;
 		VkPipelineColorBlendAttachmentState color_blend_attachment;
 		VkPipelineColorBlendStateCreateInfo color_blend_info;
 		VkPipelineDepthStencilStateCreateInfo depth_stencil_info;
+
+		std::vector<VkDynamicState> dynamic_state_enables;
+		VkPipelineDynamicStateCreateInfo dynamic_state_info;
+
 		VkPipelineLayout pipeline_layout = nullptr;
 		VkRenderPass render_pass = nullptr;
 		uint32_t subpass = 0;
@@ -32,13 +37,13 @@ namespace VulkanRender {
 		~VulkanRenderPipeline();
 
 		VulkanRenderPipeline(const VulkanRenderPipeline&) = delete;
-		void operator=(const VulkanRenderPipeline&) = delete;
+		VulkanRenderPipeline& operator=(const VulkanRenderPipeline&) = delete;
 
 
 		void Bind(VkCommandBuffer command_buffer);
 
 
-		static PipelineConfigInfo DefaultPipelineConfigInfo(uint32_t width, uint32_t height);
+		static void DefaultPipelineConfigInfo(PipelineConfigInfo& config_info);
 
 	private:
 		static std::vector<char> ReadShaderFile(const std::string& file_path);

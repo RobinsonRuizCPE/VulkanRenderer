@@ -35,7 +35,7 @@ class VulkanRenderDevice {
 
   // Not copyable or movable
   VulkanRenderDevice(const VulkanRenderDevice &) = delete;
-  void operator=(const VulkanRenderDevice &) = delete;
+  VulkanRenderDevice operator=(const VulkanRenderDevice &) = delete;
   VulkanRenderDevice(VulkanRenderDevice &&) = delete;
   VulkanRenderDevice &operator=(VulkanRenderDevice &&) = delete;
 

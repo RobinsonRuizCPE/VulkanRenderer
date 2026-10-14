@@ -19,9 +19,17 @@ namespace VWindow {
 	{
 		glfwInit();
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Not OpenGL Used
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // No resize
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE); // No resize
 
 		window = glfwCreateWindow(width, height, window_name.c_str(), nullptr, nullptr);
+		glfwSetWindowUserPointer(window, this);
+		glfwSetFramebufferSizeCallback(window, FrameBufferResizeCallback);
+	}
+
+	void VulkanWindow::FrameBufferResizeCallback(GLFWwindow* windows, int width, int height)
+	{
+		auto v_window = reinterpret_cast<VulkanWindow*>(glfwGetWindowUserPointer(windows));
+		v_window->SetWindowSize(width, height);
 	}
 
 	void VulkanWindow::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface) {

@@ -8,6 +8,7 @@
 // std lib headers
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace VulkanRender {
 
@@ -16,10 +17,12 @@ namespace VulkanRender {
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
         VulkanRenderSwapChain(VulkanRenderDevice& deviceRef, VkExtent2D windowExtent);
+        VulkanRenderSwapChain(VulkanRenderDevice& deviceRef, VkExtent2D windowExtent, std::shared_ptr< VulkanRenderSwapChain> previous);
+
         ~VulkanRenderSwapChain();
 
         VulkanRenderSwapChain(const VulkanRenderSwapChain&) = delete;
-        void operator=(const VulkanRenderSwapChain&) = delete;
+        VulkanRenderSwapChain operator=(const VulkanRenderSwapChain&) = delete;
 
         VkFramebuffer getFrameBuffer(int index) { return swapChainFramebuffers[index]; }
         VkRenderPass getRenderPass() { return renderPass; }
@@ -37,8 +40,13 @@ namespace VulkanRender {
 
         VkResult acquireNextImage(uint32_t* imageIndex);
         VkResult submitCommandBuffers(const VkCommandBuffer* buffers, uint32_t* imageIndex);
+        bool CompareSwapFormats(const VulkanRenderSwapChain& swap_chain) const {
+            return swap_chain.swapChainDepthFormat == swapChainDepthFormat &&
+                swap_chain.swapChainImageFormat == swapChainImageFormat;
+        }
 
     private:
+        void Init();
         void createSwapChain();
         void createImageViews();
         void createDepthResources();
@@ -53,7 +61,10 @@ namespace VulkanRender {
             const std::vector<VkPresentModeKHR>& availablePresentModes);
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
+        std::shared_ptr<VulkanRenderSwapChain> old_swap_chain;
+
         VkFormat swapChainImageFormat;
+        VkFormat swapChainDepthFormat;
         VkExtent2D swapChainExtent;
 
         std::vector<VkFramebuffer> swapChainFramebuffers;

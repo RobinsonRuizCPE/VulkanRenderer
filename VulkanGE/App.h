@@ -1,8 +1,9 @@
 #pragma once
 
 #include "VulkanWindow.hpp"
-#include "Render/VulkanRenderPipeline.hpp"
-#include "Render/VulkanrenderSwapChain.hpp"
+#include "Render/VulkanRenderer.hpp"
+#include <Render/Model/Model.hpp>
+#include <GameObject/GameObject.hpp>
 
 #include <memory>
 #include <vector>
@@ -24,17 +25,12 @@ namespace VWindow {
 		void run();
 
 	private:
-		void CreatePipelineLayout();
-		void CreatePipeline();
-		void CreateCommandBuffers();
-		void DrawFrame();
+		void LoadGameObjects();
 
 		VulkanWindow vulkan_window{ WIDTH, HEIGHT , "Test App"};
 
 		VulkanRender::VulkanRenderDevice vulkan_render_device{ vulkan_window };
-		VulkanRender::VulkanRenderSwapChain vulkan_swap_chain{ vulkan_render_device , vulkan_window.GetExtent() };
-		std::unique_ptr<VulkanRender::VulkanRenderPipeline> vulkan_render_pipeline;
-		VkPipelineLayout pipeline_layout;
-		std::vector<VkCommandBuffer> command_buffers;
+		VulkanRender::Renderer vulkan_renderer{ vulkan_window, vulkan_render_device };
+		std::vector<Object::GameObject> game_objects;
 	};
 }
