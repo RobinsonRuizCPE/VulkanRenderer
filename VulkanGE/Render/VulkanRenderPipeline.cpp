@@ -91,6 +91,7 @@ namespace VulkanRender {
 		pipeline_info.pMultisampleState = &config_info.multisample_info;
 
 		pipeline_info.pColorBlendState = &config_info.color_blend_info;
+		pipeline_info.pDepthStencilState = &config_info.depth_stencil_info;
 		pipeline_info.pDynamicState = &config_info.dynamic_state_info;
 
 		pipeline_info.layout = config_info.pipeline_layout;

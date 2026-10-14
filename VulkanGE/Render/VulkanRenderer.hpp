@@ -19,7 +19,7 @@ namespace VulkanRender {
 		Renderer& operator=(const Renderer&) = delete;
 
 		VkRenderPass GetSwapChainRenderPass() const { return vulkan_swap_chain->getRenderPass(); }
-
+		float GetAspectRation()const { return vulkan_swap_chain->extentAspectRatio(); }
 		bool IsFrameInProgress() const { return is_frame_stared; }
 		VkCommandBuffer GetCurrentCommandBuffer() const { 
 			assert(is_frame_stared && "Cannot get command buffer when frame in progress");

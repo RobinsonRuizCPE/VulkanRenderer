@@ -1,6 +1,9 @@
-cmake_minimum_required(VERSION 3.24)
+# 3.26 is the floor for `cmake -E copy_directory_if_different`, used to sync
+# Data/ into the output directory without recopying it on every build.
+cmake_minimum_required(VERSION 3.26)
 
-project(VulkanGE LANGUAGES CXX)
+# C is needed for ufbx.c, the FBX parser pulled in below.
+project(VulkanGE LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -50,6 +53,36 @@ set_target_properties(glfw PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${VULKANGE_GLFW_ROOT}/include"
 )
 
+# --------------------------------------------------------------------------
+# Mesh importers
+#
+# Both are tiny permissively-licensed parsers with no dependencies of their
+# own, fetched at configure time rather than vendored. ufbx ships a real .c
+# file; cgltf is header-only and gets its implementation from
+# Render/Model/ThirdPartyImpl.cpp.
+# --------------------------------------------------------------------------
+include(FetchContent)
+
+FetchContent_Declare(ufbx
+    GIT_REPOSITORY https://github.com/ufbx/ufbx.git
+    GIT_TAG v0.23.1
+    GIT_SHALLOW TRUE
+    # Points at a directory that does not exist, so FetchContent downloads the
+    # sources without running ufbx's own CMakeLists (which would add its test
+    # and tooling targets to our build).
+    SOURCE_SUBDIR do-not-configure
+)
+FetchContent_Declare(cgltf
+    GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
+    GIT_TAG v1.15
+    GIT_SHALLOW TRUE
+    SOURCE_SUBDIR do-not-configure
+)
+
+# Populate only: neither project's own CMakeLists is wanted here, we just need
+# the sources.
+FetchContent_MakeAvailable(ufbx cgltf)
+
 set(VULKANGE_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/VulkanGE")
 
 file(GLOB_RECURSE VULKANGE_SOURCES CONFIGURE_DEPENDS
@@ -69,14 +102,22 @@ file(GLOB_RECURSE VULKANGE_SHADERS CONFIGURE_DEPENDS
 list(FILTER VULKANGE_SOURCES EXCLUDE REGEX "[\\/]x64[\\/]")
 list(FILTER VULKANGE_SHADERS EXCLUDE REGEX "[\\/]x64[\\/]")
 
-add_executable(VulkanGE ${VULKANGE_SOURCES} ${VULKANGE_SHADERS})
+add_executable(VulkanGE ${VULKANGE_SOURCES} ${VULKANGE_SHADERS} "${ufbx_SOURCE_DIR}/ufbx.c")
 set_source_files_properties(${VULKANGE_SHADERS} PROPERTIES HEADER_FILE_ONLY TRUE)
 source_group(TREE "${VULKANGE_SRC_DIR}" FILES ${VULKANGE_SOURCES} ${VULKANGE_SHADERS})
 
 target_include_directories(VulkanGE PRIVATE
     "${VULKANGE_SRC_DIR}"
     "${VULKANGE_GLM_ROOT}"
+    "${ufbx_SOURCE_DIR}"
+    "${cgltf_SOURCE_DIR}"
 )
+
+# ufbx.c is third-party: its warnings are not ours to fix, and MSVC's
+# /analyze-grade noise on it would bury our own.
+if(MSVC)
+    set_source_files_properties("${ufbx_SOURCE_DIR}/ufbx.c" PROPERTIES COMPILE_FLAGS "/w")
+endif()
 
 target_link_libraries(VulkanGE PRIVATE
     Vulkan::Vulkan
@@ -122,6 +163,24 @@ add_custom_command(TARGET VulkanGE POST_BUILD
         "$<TARGET_FILE_DIR:VulkanGE>"
     COMMENT "Copying glfw3.dll next to VulkanGE.exe"
 )
+
+# Assets are loaded through paths relative to the working directory, which is
+# bin/ (see VS_DEBUGGER_WORKING_DIRECTORY below), so Data/ has to sit next to
+# the exe exactly as it does in the source tree. Shaders already land there by
+# being compiled straight into bin/; this does the same job for everything
+# else.
+#
+# copy_directory_if_different compares timestamps instead of recopying the
+# whole tree on every build, which matters once Data/ holds a few hundred MB
+# of models and textures.
+if(EXISTS "${VULKANGE_SRC_DIR}/Data")
+    add_custom_command(TARGET VulkanGE POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            "${VULKANGE_SRC_DIR}/Data"
+            "$<TARGET_FILE_DIR:VulkanGE>/Data"
+        COMMENT "Syncing Data/ next to VulkanGE.exe"
+    )
+endif()
 
 set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY VS_STARTUP_PROJECT VulkanGE)
 set_target_properties(VulkanGE PROPERTIES

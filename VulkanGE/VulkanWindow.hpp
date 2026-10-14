@@ -17,6 +17,7 @@ namespace VWindow {
 
 		bool ShouldClose() { return glfwWindowShouldClose(window); }
 		VkExtent2D GetExtent() { return { static_cast<uint32_t>(width) ,  static_cast<uint32_t>(height) }; }
+		auto* GetGLFWWindow() const { return window; }
 
 		void CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
 
