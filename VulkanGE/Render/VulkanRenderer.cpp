@@ -24,7 +24,7 @@ namespace VulkanRender {
 	VkCommandBuffer Renderer::BeginFrame()
 	{
 		assert(!is_frame_stared && "Can't call begin frame while already in progress");
-		auto result = vulkan_swap_chain->acquireNextImage(&current_image_index);
+		auto result = vulkan_swap_chain->AcquireNextImage(&current_image_index);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			RecreateSwapchain();
 			return nullptr;
@@ -53,7 +53,7 @@ namespace VulkanRender {
 			throw std::runtime_error("Failed to record command buffer");
 		}
 
-		auto result = vulkan_swap_chain->submitCommandBuffers(&command_buffer, &current_image_index);
+		auto result = vulkan_swap_chain->SubmitCommandBuffers(&command_buffer, &current_image_index);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || vulkan_window.WasWindowResized()) {
 			vulkan_window.SetWindowResizeFlag(false);
 			RecreateSwapchain();
@@ -75,10 +75,10 @@ namespace VulkanRender {
 
 		VkRenderPassBeginInfo render_pass_info{};
 		render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		render_pass_info.renderPass = vulkan_swap_chain->getRenderPass();
-		render_pass_info.framebuffer = vulkan_swap_chain->getFrameBuffer(current_image_index);
+		render_pass_info.renderPass = vulkan_swap_chain->GetRenderPass();
+		render_pass_info.framebuffer = vulkan_swap_chain->GetFrameBuffer(current_image_index);
 		render_pass_info.renderArea.offset = { 0, 0 };
-		render_pass_info.renderArea.extent = vulkan_swap_chain->getSwapChainExtent();
+		render_pass_info.renderArea.extent = vulkan_swap_chain->GetSwapChainExtent();
 
 		std::array<VkClearValue, 2> clear_values{};
 		clear_values[0].color = { 0.01f ,0.01f ,0.01f ,1.0f };
@@ -91,11 +91,11 @@ namespace VulkanRender {
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(vulkan_swap_chain->getSwapChainExtent().width);
-		viewport.height = static_cast<float>(vulkan_swap_chain->getSwapChainExtent().height);
+		viewport.width = static_cast<float>(vulkan_swap_chain->GetSwapChainExtent().width);
+		viewport.height = static_cast<float>(vulkan_swap_chain->GetSwapChainExtent().height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
-		VkRect2D scissor{ {0, 0}, vulkan_swap_chain->getSwapChainExtent() };
+		VkRect2D scissor{ {0, 0}, vulkan_swap_chain->GetSwapChainExtent() };
 		vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 		vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 	}
@@ -114,9 +114,9 @@ namespace VulkanRender {
 		VkCommandBufferAllocateInfo alloc_info{};
 		alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		alloc_info.commandPool = vulkan_render_device.getCommandPool();
+		alloc_info.commandPool = vulkan_render_device.GetCommandPool();
 		alloc_info.commandBufferCount = static_cast<uint32_t>(command_buffers.size());
-		if (vkAllocateCommandBuffers(vulkan_render_device.device(), &alloc_info, command_buffers.data())!=VK_SUCCESS) {
+		if (vkAllocateCommandBuffers(vulkan_render_device.GetDevice(), &alloc_info, command_buffers.data())!=VK_SUCCESS) {
 			throw std::runtime_error("Failed to allocate command buffer");
 		}
 	}
@@ -129,7 +129,7 @@ namespace VulkanRender {
 			glfwWaitEvents();
 		}
 
-		vkDeviceWaitIdle(vulkan_render_device.device());
+		vkDeviceWaitIdle(vulkan_render_device.GetDevice());
 		if (vulkan_swap_chain == nullptr) {
 			vulkan_swap_chain = std::make_unique<VulkanRender::VulkanRenderSwapChain>(vulkan_render_device, extent);
 		}
@@ -144,7 +144,7 @@ namespace VulkanRender {
 
 	void Renderer::FreeCommandBuffer()
 	{
-		vkFreeCommandBuffers(vulkan_render_device.device(), vulkan_render_device.getCommandPool(), static_cast<uint32_t>(command_buffers.size()), command_buffers.data());
+		vkFreeCommandBuffers(vulkan_render_device.GetDevice(), vulkan_render_device.GetCommandPool(), static_cast<uint32_t>(command_buffers.size()), command_buffers.data());
 		command_buffers.clear();
 	}
 

@@ -4,6 +4,7 @@
 #include "Render/VulkanRenderer.hpp"
 #include <Render/Model/Model.hpp>
 #include <GameObject/GameObject.hpp>
+#include <Render/Helpers/Descriptors.hpp>
 
 #include <memory>
 #include <vector>
@@ -31,6 +32,8 @@ namespace VWindow {
 
 		VulkanRender::VulkanRenderDevice vulkan_render_device{ vulkan_window };
 		VulkanRender::Renderer vulkan_renderer{ vulkan_window, vulkan_render_device };
+
+		std::unique_ptr<VulkanRender::DescriptorPool> global_pool{};
 		std::vector<Object::GameObject> game_objects;
 	};
 }

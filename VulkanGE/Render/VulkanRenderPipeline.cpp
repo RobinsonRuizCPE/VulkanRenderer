@@ -20,9 +20,9 @@ namespace VulkanRender {
 	}
 
 	VulkanRenderPipeline::~VulkanRenderPipeline() {
-		vkDestroyShaderModule(render_device.device(), vert_shader_module, nullptr);
-		vkDestroyShaderModule(render_device.device(), frag_shader_module, nullptr);
-		vkDestroyPipeline(render_device.device(), graphics_pipeline, nullptr);
+		vkDestroyShaderModule(render_device.GetDevice(), vert_shader_module, nullptr);
+		vkDestroyShaderModule(render_device.GetDevice(), frag_shader_module, nullptr);
+		vkDestroyPipeline(render_device.GetDevice(), graphics_pipeline, nullptr);
 	}
 
 	std::vector<char> VulkanRenderPipeline::ReadShaderFile(const std::string& file_path)
@@ -101,7 +101,7 @@ namespace VulkanRender {
 		pipeline_info.basePipelineIndex = -1;
 		pipeline_info.basePipelineHandle = nullptr;
 
-		if (vkCreateGraphicsPipelines(render_device.device(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &graphics_pipeline) != VK_SUCCESS) {
+		if (vkCreateGraphicsPipelines(render_device.GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &graphics_pipeline) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create graphics pipeline");
 		}
 	}
@@ -112,7 +112,7 @@ namespace VulkanRender {
 		create_info.codeSize = code.size();
 		create_info.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
-		if (vkCreateShaderModule(render_device.device(), &create_info, nullptr, shader_module) != VK_SUCCESS) {
+		if (vkCreateShaderModule(render_device.GetDevice(), &create_info, nullptr, shader_module) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create shader module");
 		}
 	}

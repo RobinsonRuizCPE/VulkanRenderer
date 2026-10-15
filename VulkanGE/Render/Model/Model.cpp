@@ -49,13 +49,6 @@ namespace VulkanRender {
 
 	Model::~Model()
 	{
-		vkDestroyBuffer(device.device(), vertex_buffer, nullptr);
-		vkFreeMemory(device.device(), vertex_buffer_memory, nullptr);
-
-		if (has_index_buffer) {
-			vkDestroyBuffer(device.device(), index_buffer, nullptr);
-			vkFreeMemory(device.device(), index_buffer_memory, nullptr);
-		}
 	}
 
 	std::unique_ptr<Model> Model::CreateModelfromFile(VulkanRenderDevice& device, const std::string& file_path)
@@ -67,12 +60,12 @@ namespace VulkanRender {
 
 	void Model::Bind(VkCommandBuffer command_buffer)
 	{
-		VkBuffer buffers[] = { vertex_buffer };
+		VkBuffer buffers[] = { vertex_buffer->GetBuffer()};
 		VkDeviceSize offset[] = { 0 };
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, buffers, offset);
 
 		if (has_index_buffer) {
-			vkCmdBindIndexBuffer(command_buffer, index_buffer,0,VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(command_buffer, index_buffer->GetBuffer(),0,VK_INDEX_TYPE_UINT32);
 		}
 	}
 
@@ -92,31 +85,16 @@ namespace VulkanRender {
 		vertex_count = static_cast<uint32_t>(vertices.size());
 		assert(vertex_count >= 3 && "VertexCount must be at least 3");
 		VkDeviceSize buffer_size = sizeof(vertices[0]) * vertex_count;
+		uint32_t vertex_size = sizeof(vertices[0]);
+		Buffer staging_buffer{ device, vertex_size, vertex_count,VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT };
+		staging_buffer.Map();
+		staging_buffer.WriteToBuffer((void*)vertices.data());
 
-		VkBuffer staging_buffer;
-		VkDeviceMemory staging_buffer_memory;
+		vertex_buffer = std::make_unique<Buffer>(device, vertex_size, vertex_count, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		device.createBuffer(buffer_size,
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			staging_buffer,
-			staging_buffer_memory);
-
-		void* data;
-		vkMapMemory(device.device(), staging_buffer_memory, 0, buffer_size, 0, &data);
-		memcpy(data, vertices.data(), static_cast<size_t> (buffer_size));
-		vkUnmapMemory(device.device(), staging_buffer_memory);
-
-		device.createBuffer(buffer_size,
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			vertex_buffer,
-			vertex_buffer_memory);
-
-		device.copyBuffer(staging_buffer, vertex_buffer, buffer_size);
-
-		vkDestroyBuffer(device.device(), staging_buffer, nullptr);
-		vkFreeMemory(device.device(), staging_buffer_memory, nullptr);
+		device.CopyBuffer(staging_buffer.GetBuffer(), vertex_buffer->GetBuffer(), buffer_size);
 	}
 
 	void Model::CreateIndexBuffer(const std::vector<uint32_t>& indices)
@@ -128,30 +106,18 @@ namespace VulkanRender {
 		}
 
 		VkDeviceSize buffer_size = sizeof(indices[0]) * index_count;
-		VkBuffer staging_buffer;
-		VkDeviceMemory staging_buffer_memory;
+		uint32_t index_size = sizeof(indices[0]);
 
-		device.createBuffer(buffer_size,
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			staging_buffer,
-			staging_buffer_memory);
+		Buffer staging_buffer{ device, index_size, index_count, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT };
 
-		void* data;
-		vkMapMemory(device.device(), staging_buffer_memory, 0, buffer_size, 0, &data);
-		memcpy(data, indices.data(), static_cast<size_t> (buffer_size));
-		vkUnmapMemory(device.device(), staging_buffer_memory);
+		staging_buffer.Map();
+		staging_buffer.WriteToBuffer((void*)indices.data());
+		index_buffer = std::make_unique<Buffer>(device, index_size, index_count, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		device.createBuffer(buffer_size,
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			index_buffer,
-			index_buffer_memory);
 
-		device.copyBuffer(staging_buffer, index_buffer, buffer_size);
-
-		vkDestroyBuffer(device.device(), staging_buffer, nullptr);
-		vkFreeMemory(device.device(), staging_buffer_memory, nullptr);
+		device.CopyBuffer(staging_buffer.GetBuffer(), index_buffer->GetBuffer(), buffer_size);
 	}
 
 	void Model::Builder::LoadModel(const std::string& file_path)
